@@ -1,9 +1,23 @@
 const {app, BrowserWindow} = require("electron");
 
-let mainWindow
+function createWindow() {
+  const win = new BrowserWindow({
+    webPreferences: {nodeIntegration: true}
+  });
+  win.loadFile("./src/index.html");
+  win.webContents.openDevTools();
+}
 
-app.on("ready", () => {
+app.whenReady().then(createWindow);
 
-  mainWindow = new BrowserWindow();
-  mainWindow.loadFile("./src/index.html");
+app.on('window-all-closed', () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+})
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0 ) {
+    createWindow();
+  }
 })
