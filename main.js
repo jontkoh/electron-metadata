@@ -1,14 +1,40 @@
-const {app, BrowserWindow} = require("electron");
+const {app, BrowserWindow, ipcMain} = require("electron");
+const path = require("path");
+const util = require("util");
+const fs = require("fs");
 
-function createWindow() {
-  const win = new BrowserWindow({
-    webPreferences: {nodeIntegration: true}
+
+let mainWindow 
+// funct to create browserwindow 
+app.on("ready", () => {
+  const htmlPath = path.join('src', 'index.html');
+
+  mainWindow = new BrowserWindow({
+    webPreferences: {
+      nodeIntegration: true
+    }
   });
-  win.loadFile("./src/index.html");
-  win.webContents.openDevTools();
-}
+  mainWindow.loadFile(htmlPath);
+  
+})
 
-app.whenReady().then(createWindow);
+const stat = util.promisify(fs.stat);
+// listens on files channel
+ipcMain.on("files", async (e, filesArr) => {
+  try {
+    const data = await Promise.all(
+      filesArr.map(async ({name, pathName}) => ({
+        ...await stat(pathName),
+        name,
+        pathName
+      }))
+    )
+    mainWindow.webContents.send("metadata", data);
+  }
+  catch (error) {
+    mainWindow.webContents.send('metadata:error', error);
+  }
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== "darwin") {
